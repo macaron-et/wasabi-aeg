@@ -1,0 +1,6 @@
+notes
+
+result/**
+.[0-9]*
+.peda*
+.gdb_history
