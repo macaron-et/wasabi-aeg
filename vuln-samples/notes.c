@@ -13,6 +13,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <unistd.h>
+#include <signal.h>
 
 // GOT (Global Offset Tables)
 // with binding
@@ -105,6 +106,7 @@ char menu() {
 int main() {
     setvbuf(stdin, NULL, _IONBF, 1);
     setvbuf(stdout, NULL, _IONBF, 1);
+    // raise(SIGBUS);
 
     unsigned int num_notes = 0;
     while(num_notes < MAX_NUM_NOTES) {
