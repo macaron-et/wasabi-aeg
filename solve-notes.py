@@ -4,7 +4,7 @@
 import os
 from triton  import *
 from pintool import *
-
+import time
 
 isRead = None
 Triton = getTritonContext()
@@ -26,13 +26,15 @@ def solve():
         if True:
             pc = Triton.getPathConstraintsAst()
             print '[TT] Solving Path constriant...'
-            m = Triton.getModel(pc)
-            if len(m) > 0:
-                print '[TT] Model for Path Constraint:', m
+            models = Triton.getModels(pc, 5)
+            if len(models) == 0:
+                print '[TT] Model for Path Constraint: unsat'
+            else:
+                print '\tFound %d models' % len(models)
+            for i, m in enumerate(models):
+                print '[TT] Model #%d for Path Constraint:' % i, m
                 for k, v in m.items():
                     inputs[k] = chr(v.getValue())
-            else:
-                print '[TT] Model for Path Constraint: unsat'
 
         if mc is not None and mnode is not None:
             print 'mc:', mc
@@ -91,6 +93,7 @@ def syscallsEntry(threadId, std):
     global isRead
     global targetFd
 
+    # print '[TT:debug] syscallsEntry'
     if getSyscallNumber(std) == SYSCALL64.READ:
         fd   = getSyscallArgument(std, 0)
         buff = getSyscallArgument(std, 1)
@@ -107,6 +110,8 @@ def syscallsExit(threadId, std):
     global targetFd
     global stdin_len
 
+    # print '[TT:debug] syscallsExit'
+
     ctxt = getTritonContext()
 
     if isRead is not None:
@@ -117,10 +122,13 @@ def syscallsExit(threadId, std):
             Triton.taintMemory(buff+index)
             print '\tread: %r' % chr(getCurrentMemoryValue(buff+index))
             crash_inputs.append(chr(getCurrentMemoryValue(buff+index)))
+            start_time = time.time()
             ctxt.setConcreteMemoryValue(buff+index, getCurrentMemoryValue(buff+index))
-            # if stdin_len >= 30 and stdin_len < 50:
+            # if stdin_len >= 30 and stdin_len < 50: ### makes incorrect result
             if True:
-                print "Symbolized input: ", ctxt.convertMemoryToSymbolicVariable(MemoryAccess(buff+index, CPUSIZE.BYTE))
+                print "Symbolized input: ", ctxt.convertMemoryToSymbolicVariable(MemoryAccess(buff+index, CPUSIZE.BYTE)) ### become slower
+            end_time = time.time()
+            print 'symbolize took %f sec' % (end_time - start_time)
             stdin_len += 1
         isRead = None
 
@@ -131,6 +139,9 @@ def mycb(inst):
     global mc
     global mnode
 
+    # if inst.getAddress() < 0x1000000:
+    #     print inst
+    # print inst
     if (inst.getAddress() & 0xfff) == (0x00007ffff7a8c231 & 0xfff):
         if inst.isMemoryWrite() and Triton.getPathConstraintsAst().isSymbolized():
             mem, node = inst.getStoreAccess()[0]
