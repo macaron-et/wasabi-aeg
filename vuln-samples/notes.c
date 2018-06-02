@@ -15,6 +15,13 @@
 #include <unistd.h>
 #include <signal.h>
 
+// Call me!!
+void instant_win() {
+    puts("Congratz!");
+    execve("/bin/sh", NULL, NULL);
+    exit(1);
+}
+
 // GOT (Global Offset Tables)
 // with binding
  __attribute__((section(".my_got")))
@@ -50,13 +57,6 @@ void _puts(char * msg) {
     got[3](msg);
 }
 
-// Call me!!
-void instant_win() {
-    puts("Congratz!");
-    execve("/bin/sh", NULL, NULL);
-    exit(1);
-}
-
 
 typedef struct {
     char* content;
@@ -71,7 +71,7 @@ void update_note(unsigned int note_id) {
         printf("Note #%d does not exests.\n", note_id);
         return;
     }
-    _printf("==== [note #%d] ====\n", note_id);
+    _printf("\n==== [note #%d] ====\n", note_id);
     _printf("title: ");
     _fgets(notes[note_id].title, 1024, stdin);
     _printf("content: ");
@@ -91,7 +91,7 @@ void show_notes(unsigned int num_notes) {
 
 char menu() {
     char res;
-    _puts("---- [menu] ----");
+    _puts("\n---- [menu] ----");
     _puts("n: new note");
     _puts("u: update note");
     _puts("s: show notes");
@@ -107,6 +107,8 @@ int main() {
     setvbuf(stdin, NULL, _IONBF, 1);
     setvbuf(stdout, NULL, _IONBF, 1);
     // raise(SIGBUS);
+
+    _puts("Exploit Me!!");
 
     unsigned int num_notes = 0;
     while(num_notes < MAX_NUM_NOTES) {

