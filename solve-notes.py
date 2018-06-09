@@ -194,7 +194,8 @@ if __name__ == '__main__':
 
     startAnalysisFromSymbol('main')
 
-    concrete_input_offets = range(40)
+    # concrete_input_offets = range(26)
+    concrete_input_offets = range(0)
 
     # Add callback
     insertCall(mycb, INSERT_POINT.BEFORE)
@@ -228,4 +229,9 @@ Found:
 'n\ntit\ncon\nn\ntit!\ncon!\nu\n1\nAAA%AAsAABAA$AAn` `\x00\x00\x00\x00\x00(AADAA;A\ncon!!\nu\n2\ntit!!\n\xb0'
 ~/project/pin-2.14-71313-gcc.4.4.7-linux/source/tools/Triton/build/triton   <  1630.75s user 6.39s system 99% cpu 27:27.10 total
 K_atc% 
+
+concrete_input_offets = range(0)
+[TT] Go on to phase 2
+~/project/pin-2.14-71313-gcc.4.4.7-linux/source/tools/Triton/build/triton   <  666.28s user 2.64s system 99% cpu 11:11.97 total
+
 """

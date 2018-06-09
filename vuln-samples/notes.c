@@ -5,6 +5,7 @@
  * Pro Tips:
  *      Fuzz this program wih afl
  *          for example: `afl-fuzz -Q -i inputs -o result ./notes`
+ *          for example: `afl-fuzz -n -i inputs -o result ./notes` (without QEMU)
  *      Put some input file into `inputs` folder beforehand
  */
 

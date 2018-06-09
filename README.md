@@ -3,6 +3,7 @@ Wasabi AEG
 
 This is yet another implementation (demonstration) of [AEG (Automated Exploit Generation)](http://security.ece.cmu.edu/aeg/) using Symbolic Executor Triton.
 
+This is a Prototype.
 
 Requirements
 -----

@@ -1,5 +1,8 @@
 notes
 notes.hooked
+*.so
+
+*.patched
 
 strace.log
 memo.md
@@ -9,6 +12,7 @@ perf*
 triton.svg
 crash_inputs*
 README.html
+*.stdin.log
 
 result/**
 .[0-9]*
