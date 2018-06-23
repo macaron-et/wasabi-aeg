@@ -8,7 +8,7 @@ This is a Prototype.
 
 Requirements
 -----
-* [Triton](https://github.com/JonathanSalwan/Triton)
+* [Triton](https://github.com/JonathanSalwan/Triton) and [Pin tracer](https://triton.quarkslab.com/documentation/doxygen/index.html#libpintool_install_sec)
 * [lief](https://lief.quarkslab.com/)
 * Python2
 
