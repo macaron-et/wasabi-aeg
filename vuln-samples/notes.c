@@ -132,7 +132,7 @@ int main() {
                 _puts("Bye.");
                 return 0;
             case 'i':
-                instant_win();
+                // instant_win();
             default:
                 _puts("Unkown command.");
         }

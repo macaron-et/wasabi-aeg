@@ -1,5 +1,6 @@
 BIN := notes libshell.so
 LDFLAGS := -pie -Wl,-E
+CC := afl-gcc
 
 all: $(BIN)
 	@### Do Nothing
@@ -12,7 +13,7 @@ libshell.so: shell.c
 	gcc -shared -fPIC $(LDFLAGS) -m32 -o $@ $^
 
 %: %.c
-	gcc -O0 -no-pie -Wno-incompatible-pointer-types -o $@ $^
+	$(CC) -O0 -no-pie -Wno-incompatible-pointer-types -o $@ $^
 
 clean:
 	rm -f $(BIN)
