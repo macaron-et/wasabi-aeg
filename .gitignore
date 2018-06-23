@@ -11,8 +11,10 @@ bug.md
 perf*
 triton.svg
 crash_inputs*
+*payload
 README.html
 *.stdin.log
+vuln-samples/.*/
 
 result/**
 .[0-9]*
