@@ -1,9 +1,9 @@
 Command line used to find this crash:
 
-afl-fuzz -Q -i inputs -o result ./notes
+afl-fuzz -i inputs/notes -o result-notes ./notes
 
 If you can't reproduce a bug outside of afl-fuzz, be sure to set the same
-memory limit. The limit used for this fuzzing session was 200 MB.
+memory limit. The limit used for this fuzzing session was 50.0 MB.
 
 Need a tool to minimize test cases before investigating the crashes or sending
 them to a vendor? Check out the afl-tmin that comes with the fuzzer!
