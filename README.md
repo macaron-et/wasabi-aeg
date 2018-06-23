@@ -5,9 +5,11 @@ This is yet another implementation (demonstration) of [AEG (Automated Exploit Ge
 
 This is a Prototype.
 
+
 Requirements
 -----
 * [Triton](https://github.com/JonathanSalwan/Triton)
+* [lief](https://lief.quarkslab.com/)
 * Python2
 
 
@@ -22,6 +24,8 @@ cd -
 
 Demo
 -----
+Demo binaries are located in `vuln-samples`.
+
 ### notes
 We obtained crash input from afl and feed it into `notes`.
 We found that crashes at address `0x7ffff7a8c231`.

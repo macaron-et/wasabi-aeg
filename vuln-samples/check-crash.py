@@ -2,6 +2,7 @@
 from pwn import *
 import os, sys
 import glob
+import time
 
 # context.log_level = 'debug'
 context.log_level = 'warn'
@@ -24,7 +25,9 @@ for INPUT_FILE in sorted(glob.glob(INPUT_GLOB)):
     with open(INPUT_FILE) as f:
         _input = f.read()
 
-    for x in _input.split():
+    for x in _input.split() + ['5']:
+        if r.poll() is not None:
+            break
         if r.poll() is None:
             # print(x)
             r.sendline(x)
@@ -34,3 +37,4 @@ for INPUT_FILE in sorted(glob.glob(INPUT_GLOB)):
 
     exit_code = r.poll()
     print("{}\texit code: {}".format(INPUT_FILE, exit_code))
+    # time.sleep(0.01)
