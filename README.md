@@ -32,6 +32,18 @@ We obtained crash input from afl and feed it into `notes`.
 We found that crashes at address `0x7ffff7a8c231`.
 
 ```
+K_atc% xxd vuln-samples/result-notes/crashes/id:000004,sig:07,src:000000,op:havoc,rep:32
+00000000: 6ef8 5d69 74e9 6d0d 320a 730a 750a 330a  n.]it.m.2.s.u.3.
+00000010: 6e6c 65ff 68ff ff6f 8121 212e 7a81 2121  nle.h..o.!!.z.!!
+00000020: 20d5 0a63 6e6e 2120 d50a 636e 6e66 adad   ..cnn! ..cnnf..
+00000030: adad 66ad adad adad adad ad22 adad adad  ..f........"....
+00000040: adad ad9d adad adad 0d51 0a73 0a75 0a33  .........Q.s.u.3
+00000050: 0a6e 6c65 ff28 ffff 6f81 2121 20d5 0a63  .nle.(..o.!! ..c
+00000060: 6e6e 6e6e 6e81 e16e 6e6e 6e6e 7e6e 6e6f  nnnnn..nnnnn~nno
+00000070: 6e21 ff00 730a 71                        n!..s.q
+```
+
+```
 gdb-peda$ r < result-notes/crashes/id:000004,sig:07,src:000000,op:havoc,rep:32
 
 [----------------------------------registers-----------------------------------]
