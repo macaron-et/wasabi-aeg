@@ -14,7 +14,7 @@ crash_inputs*
 *payload
 README.html
 *.stdin.log
-vuln-samples/.*/
+vuln-samples/\.*
 
 result/**
 .[0-9]*

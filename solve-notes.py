@@ -133,7 +133,7 @@ def syscallsExit(threadId, std):
             start_time = time.time()
             ### Symbolize input
             ctxt.setConcreteMemoryValue(buff+index, getCurrentMemoryValue(buff+index)) ### Triton's manner
-            print "\tSymbolized input: ", ctxt.convertMemoryToSymbolicVariable(MemoryAccess(buff+index, CPUSIZE.BYTE)) ### makes slower
+            print "\tSymbolized input: ", ctxt.convertMemoryToSymbolicVariable(MemoryAccess(buff+index, CPUSIZE.BYTE))
             ### Concretize part of stdin
             if stdin_len in concrete_input_offets:
                 print "\tConcretized stdin pos %d" % stdin_len

@@ -1,4 +1,4 @@
-BIN := notes libshell.so
+BIN := notes notes.inspect libshell.so
 LDFLAGS := -pie -Wl,-E
 CC := afl-gcc
 
@@ -11,6 +11,9 @@ all: $(BIN)
 
 libshell.so: shell.c
 	gcc -shared -fPIC $(LDFLAGS) -m32 -o $@ $^
+
+%.inspect: %.c
+	clang -g -fsanitize=address -fno-omit-frame-pointer -o $@ $^
 
 %: %.c
 	$(CC) -O0 -no-pie -Wno-incompatible-pointer-types -o $@ $^

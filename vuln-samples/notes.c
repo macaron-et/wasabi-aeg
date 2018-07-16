@@ -2,11 +2,12 @@
  * Exercise:
  *      Exploit this program to invoke /bin/sh
  *
- * Pro Tips:
+ * Tips:
  *      Fuzz this program wih afl
- *          for example: `afl-fuzz -Q -i inputs -o result ./notes`
- *          for example: `afl-fuzz -n -i inputs -o result ./notes` (without QEMU)
- *      Put some input file into `inputs` folder beforehand
+ *          for example: `afl-fuzz -i inputs/notes -o result ./notes` (with afl's instrumentation)
+ *          for example: `afl-fuzz -n -i inputs/notes -o result ./notes` (without QEMU & afl's instrumentation)
+ *          for example: `afl-fuzz -Q -i inputs/notes -o result ./notes` (with QEMU & without afl's instrumentation)
+ *      Put some input file into `inputs/notes` folder beforehand
  */
 
 #include <stdio.h>
@@ -104,7 +105,7 @@ char menu() {
     return res;
 }
 
-int main() {
+int main(int argc, char* argv[]) {
     setvbuf(stdin, NULL, _IONBF, 1);
     setvbuf(stdout, NULL, _IONBF, 1);
     // raise(SIGBUS);
