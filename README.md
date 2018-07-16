@@ -9,6 +9,7 @@ This is a Prototype.
 Requirements
 -----
 * [Triton](https://github.com/JonathanSalwan/Triton) and [Pin tracer](https://triton.quarkslab.com/documentation/doxygen/index.html#libpintool_install_sec)
+    * **NOTE**: My Triton build number is 1380 (v 0.6). Triton's API is volatile. So you may need some paches for solver script in the future.
 * [lief](https://lief.quarkslab.com/)
 * Python2
 
@@ -31,7 +32,7 @@ We obtained crash input from afl and feed it into `notes`.
 We found that crashes at address `0x7ffff7a8c231`.
 
 ```
-gdb-peda$ r < result-notes/crashes/id:000002,sig:11,src:000000,op:havoc,rep:4
+gdb-peda$ r < result-notes/crashes/id:000004,sig:07,src:000000,op:havoc,rep:32
 
 [----------------------------------registers-----------------------------------]
 ... snipped ...
