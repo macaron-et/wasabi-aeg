@@ -1,21 +1,31 @@
 Wasabi AEG
 ====
 
-This is yet another implementation (demonstration) of [AEG (Automated Exploit Generation)](http://security.ece.cmu.edu/aeg/) using Symbolic Executor Triton.
+This is yet another implementation of AEG (Automated Exploit Generation) using symbolic execution engine Triton, and just proof of concept.
 
-This is a Prototype.
+This project is inspired by following researches.
+
+* [AEG (Automatic Exploit Generation)](http://security.ece.cmu.edu/aeg/)
+* [Driller](https://github.com/shellphish/driller)
+
+
+Presentations
+-----
+* TODO: [Girls Meets Symbolic Execution: Assertion 2. Automated Exploit Generation]() (at 第14回カーネル／VM探検隊) [Japanese]
 
 
 Requirements
 -----
 * [Triton](https://github.com/JonathanSalwan/Triton) and [Pin tracer](https://triton.quarkslab.com/documentation/doxygen/index.html#libpintool_install_sec)
-    * **NOTE**: My Triton build number is 1380 (v 0.6). Triton's API is volatile. So you may need some paches for solver script in the future.
+    * **NOTE**: My Triton build number is 1380 (v 0.6). Triton's API is volatile. So you may need some patches for solver script in the future.
 * [lief](https://lief.quarkslab.com/)
 * Python2
 
 
 Build
 ----
+You must build sample vulnerable programs.
+
 ```
 cd vuln-samples
 make
@@ -25,11 +35,15 @@ cd -
 
 Demo
 -----
-Demo binaries are located in `vuln-samples`.
+Demo applicaitons are located in `vuln-samples`.
 
 ### notes
-We obtained crash input from afl and feed it into `notes`.
-We found that crashes at address `0x7ffff7a8c231`.
+**:tada: Demo video (asciinema) :camera: is avaliable [here](https://asciinema.org/a/oex5uONOiUy5lNb41fgBQALtb)!**
+
+`notes` has buffer overflow bug, and shellcode as `instant_win()` function.
+
+We can obtain crash input using AFL and feed it into `notes`.
+We found that `notes` crashes at address `0x7ffff7a8c231`.
 
 ```
 K_atc% xxd vuln-samples/result-notes/crashes/id:000004,sig:07,src:000000,op:havoc,rep:32
@@ -58,7 +72,7 @@ Stopped reason: SIGBUS
 0x00007ffff7a8c231 in __GI__IO_getline_info () from /usr/lib/libc.so.6
 ```
 
-We can generate exploit payload int the following manner.
+Generate exploit payload in the following manner.
 
 ```
 K_atc% export CRASHED_AT=0x7ffff7a8c231
@@ -87,7 +101,7 @@ To test payload: `(cat exploit-payload -) | ./vuln-samples/notes`
 ~/project/pin-2.14-71313-gcc.4.4.7-linux/source/tools/Triton/build/triton   <  69.77s user 6.09s system 99% cpu 1:16.34 total
 ```
 
-Finally, we got payload (to spawn shell) work fine!
+Finally, we got exploit payload to spawn shell which works fine!
 
 ```
 K_atc% xxd exploit-payload 

