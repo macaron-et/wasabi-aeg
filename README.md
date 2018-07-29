@@ -11,7 +11,7 @@ This project is inspired by following researches.
 
 Presentations
 -----
-* TODO: [Girls Meets Symbolic Execution: Assertion 2. Automated Exploit Generation]() (at 第14回カーネル／VM探検隊) [Japanese]
+* Girls Meets Symbolic Execution: Assertion 2. Automated Exploit Generation (at 第14回カーネル／VM探検隊) [[Japanese](https://speakerdeck.com/katc/girls-meets-symbolic-execution-assertion-2-automated-exploit-generation), [English](https://speakerdeck.com/katc/girls-meets-symbolic-execution-assertion-2-automated-exploit-generation-english)]
 
 
 Requirements
